@@ -26,22 +26,41 @@
 }
 
 
-.addStackTrace <- function(e) {
+.setErrorStackAndPackage <- function(e) {
   # Adds a stacktrace to the error object when an exception is encountered.
   # Includes up to the latest 10 system calls; the non-informational system calls are omitted.
+  # If the exception occurred in an external package, log this as an attribute.
   # Arg e: error object.
 
   stack <- ''
+  package <- NULL
   if (! is.null(sys.calls()) && length(sys.calls()) >= 9) {
     
     stack <- sys.calls()  
     stack <- head(stack[7:length(stack)], -2)
+    stack <- as.character(stack)
+
+    excludedPackages <- c('base', 'grDevices', 'graphics', 'grid', 'methods', 'parallel', 'utils')
+    expr <- '[a-zA-Z0-9.]{2,}(?<![.])(::|:::)[a-zA-Z0-9._]+'
+    packageCalls <- grepl(expr, stack, perl=TRUE)
+    if (sum(packageCalls) > 0) {
+      index <- min(which(packageCalls))
+      match <- regmatches(stack[[index]], gregexpr(expr, stack[[index]], perl=TRUE))[[1]]
+      match <- gsub(':.*?$', '', match)
+      if (! match %in% excludedPackages) {
+        package <- paste0("'", match, "'")
+      }
+    }
+    
     if (length(stack) > 10) {
       stack <- tail(stack, 10)
     }
     
   }
+
   e$stackTrace <- stack
+  e$package <- package
+
   signalCondition(e)
 }
 

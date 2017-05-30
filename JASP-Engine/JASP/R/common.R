@@ -59,7 +59,7 @@ run <- function(name, options.as.json.string, perform="run") {
 					analysis(dataset=NULL, options=options, perform=perform, callback=the.callback, state=state)
 					
 				}, 
-				error=.addStackTrace)
+				error=.setErrorStackAndPackage)
 				
 	},
 	error=function(e) e)
@@ -74,12 +74,16 @@ run <- function(name, options.as.json.string, perform="run") {
 		
 		error <- gsub("\"", "'", as.character(results), fixed=TRUE)
 		
-		stackTrace <- as.character(results$stackTrace)
-		stackTrace <- gsub("\"", "'", stackTrace, fixed=TRUE)
+		stackTrace <- gsub("\"", "'", results$stackTrace, fixed=TRUE)
 		stackTrace <- gsub("\\\\", "", stackTrace)
 		stackTrace <- paste(stackTrace, collapse="<br><br>")
 		
-		errorMessage <- .generateErrorMessage(type='exception', error=error, stackTrace=stackTrace)
+		if (! is.null(results$package)) {
+			errorMessage <- .generateErrorMessage(type='packageException', error=error, stackTrace=stackTrace, package=results$package)
+		} else {
+			errorMessage <- .generateErrorMessage(type='jaspException', error=error, stackTrace=stackTrace)
+		}
+		
 		errorResponse <- paste("{ \"status\" : \"exception\", \"results\" : { \"title\" : \"error\", \"error\" : 1, \"errorMessage\" : \"", errorMessage, "\" } }", sep="")
 		
 		errorResponse
