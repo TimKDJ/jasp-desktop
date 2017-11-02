@@ -1,6 +1,6 @@
 
 JASP
-====
+==== 
 
 JASP aims to be a complete statistical package for both Bayesian and Frequentist statistical methods, that is easy to use and familiar to users of SPSS
 
