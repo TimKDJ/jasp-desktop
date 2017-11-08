@@ -1,5 +1,7 @@
+# sessionInfo of R
+sessionInfo()
 
-
+# gdtools version info
 cat("\nCairo version:")
 gdtools::version_cairo()
 cat("\nFreetype version:")
