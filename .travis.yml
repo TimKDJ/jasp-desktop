@@ -1,5 +1,5 @@
 language: R
-
+r: "3.3"
 
 matrix:
   include:
@@ -17,4 +17,3 @@ matrix:
         - Rscript Tools/showVersion.R
         - cd JASP-Tests/R/tests/
         - R < testthat.R --no-save
-    - r: "3.3"
