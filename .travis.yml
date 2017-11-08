@@ -10,9 +10,11 @@ matrix:
       before_install: [
         "sudo add-apt-repository \"deb http://archive.ubuntu.com/ubuntu/ xenial main\" -y",
         "sudo apt-get update -q",
+        "echo 'Installing R package dependencies'",
         "sudo apt-get install libfreetype6",
         "sudo apt-get install libnlopt-dev",
-        "sudo apt-get install r-cran-rcppeigen"
+        "sudo apt-get install r-cran-rcppeigen",
+        "sudo apt-get install r-cran-plogr"
       ]
       install: Rscript -e 'install.packages(c("testthat", "vdiffr"))'
       script:
