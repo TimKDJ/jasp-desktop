@@ -2,6 +2,9 @@
 JASP
 ====
 
+`R code tests`  [![Build Status](https://travis-ci.org/vankesteren/jasp-desktop.svg?branch=development)](https://travis-ci.org/vankesteren/jasp-desktop)
+
+
 JASP aims to be a complete statistical package for both Bayesian and Frequentist statistical methods, that is easy to use and familiar to users of SPSS
 
 [https://jasp-stats.org](https://jasp-stats.org)
