@@ -9,4 +9,4 @@ License: GNU General Public License
 Encoding: UTF-8
 LazyData: true
 Imports: rjson, jsonlite, stringi, vdiffr, testthat
-Built: R 3.3.3; ; 2017-11-03 16:01:03 UTC; unix
+Built: R 3.3.3; ; 2017-11-08 15:35:45 UTC; unix
