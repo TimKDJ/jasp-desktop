@@ -1,5 +1,6 @@
 language: R
 r: "3.3"
+cache: packages
 
 matrix:
   include:
