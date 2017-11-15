@@ -1,4 +1,4 @@
-language: R
+language: r
 r: "3.3"
 cache: packages
 
@@ -22,4 +22,4 @@ matrix:
         - Rscript Tools/requiredPackages.R JASP-Engine/JASP/R true
         - Rscript Tools/showVersion.R
         - cd JASP-Tests/R/tests/
-- R < testthat.R --no-save
+        - R < testthat.R --no-save
