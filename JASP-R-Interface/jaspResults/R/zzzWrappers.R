@@ -81,6 +81,12 @@ jaspResultsCalledFromJasp <- function() {
   )
 }
 
+extractErrorMessage <- function(error) {
+  splits <- unlist(strsplit(as.character(error), ":", fixed=TRUE))
+  errorMsg <- splits[length(splits)]
+  return(trimws(errorMsg))
+}
+
 createJaspPlot <- function(plot=NULL, title="", width=320, height=320, aspectRatio=0, error=NULL, dependencies=NULL, position=NULL)
 	return(jaspPlotR$new(plot = plot, title = title, width = width, height = height, aspectRatio = aspectRatio, error = error, dependencies = dependencies, position = position))
 
@@ -288,6 +294,9 @@ jaspOutputObjR <- R6Class(
 	active	= list(
 		position = function(x) { if (missing(x)) private$jaspObject$position else private$jaspObject$position <- as.numeric(x) },
 		title    = function(x) { if (missing(x)) private$jaspObject$title    else private$jaspObject$title    <- x }
+	),
+	private = list(
+	  handleErrors = function(data) { if (inherits(data, "try-error")) private$jaspObject$setError(extractErrorMessage(data)) else return(data) }
 	)
 )
 
@@ -425,7 +434,7 @@ jaspPlotR <- R6Class(
 				jaspPlotObj$setError(error)
 			
 			if (!is.null(plot))
-				jaspPlotObj$plotObject <- plot
+				jaspPlotObj$plotObject <- private$handleErrors(plot)
 			
 			if(!is.null(dependencies))
 				jaspPlotObj$dependOnOptions(dependencies)
@@ -438,7 +447,7 @@ jaspPlotR <- R6Class(
 		}
 	),
 	active = list(
-		plotObject  = function(x) if (missing(x)) private$jaspObject$plotObject   else private$jaspObject$plotObject   <- x,
+		plotObject  = function(x) if (missing(x)) private$jaspObject$plotObject   else private$jaspObject$plotObject   <- private$handleErrors(x),
 		aspectRatio = function(x) if (missing(x)) private$jaspObject$aspectRatio  else private$jaspObject$aspectRatio  <- x,
 		width       = function(x) if (missing(x)) private$jaspObject$width        else private$jaspObject$width        <- x,
 		height      = function(x) if (missing(x)) private$jaspObject$height       else private$jaspObject$height       <- x,
@@ -463,7 +472,7 @@ jaspTableR <- R6Class(
 			}
 			
 			if (!is.null(data))
-				jaspObj$setData(data)
+				jaspObj$setData(private$handleErrors(data))
 			
 			if (!is.null(colNames))
 				jaspObj$setColNames(colNames)
@@ -493,7 +502,7 @@ jaspTableR <- R6Class(
 			return()
 		},
 		addColumns  = function(cols) private$jaspObject$addColumns(cols),
-		setData     = function(data) private$jaspObject$setData(data),
+		setData     = function(data) private$jaspObject$setData(private$handleErrors(data)),
 		addFootnote = function(message = "", symbol = NULL, colNames = NULL, rowNames = NULL) {
 			if (is.null(colNames) && is.null(rowNames) && is.null(symbol)
 					&& !grepl("^<.*?>note\\.?</.*?>", message, ignore.case=TRUE))
@@ -513,6 +522,8 @@ jaspTableR <- R6Class(
 			private$jaspObject$addColumnInfoHelper(name, title, type, format, combine, overtitle)
     },
     addRows = function(rows, rowNames = NULL) {
+      
+      rows <- private$handleErrors(rows) # TODO: make it add a footnote if it's only one errored row in between otherwise good data
 
       maxElementLength <- 0 # Lets check if the users means a single row...
       if(is.list(rows) & !is.data.frame(rows))  maxElementLength <- max(unlist(lapply(rows, length)))
