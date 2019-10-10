@@ -85,7 +85,8 @@ RCPP_MODULE(jaspResults)
 
 		.property("colNames",					&jaspTable_Interface::getColNames,					"List of columnnames, single elements can be get and set here directly through [['']] notation but setting all columnnames at once should be done through setColNames")
 		.method("setColNames",					&jaspTable_Interface::setColNames,					"Accepts a list of strings to be used as columnnames, if the elements are named they will be accessible later through fieldname.")
-
+		.method("getColNames",					&jaspTable_Interface::getColNames,					"Returns a list of column names.")
+		
 		.property("colTypes",					&jaspTable_Interface::getColTypes,					"List of columntypes, single elements can be get and set here directly through [['']] notation but setting all columntypes at once should be done through setColTypes")
 		.method("setColTypes",					&jaspTable_Interface::setColTypes,					"Accepts a list of strings to be used as columntypes, if the elements are named they will be accessible later through fieldname.")
 
@@ -103,6 +104,7 @@ RCPP_MODULE(jaspResults)
 
 		.property("rowNames",					&jaspTable_Interface::getRowNames,					"List of rownames, single elements can be get and set here directly through [['']] notation but setting all rownames at once should be done through setRowNames")
 		.method("setRowNames",					&jaspTable_Interface::setRowNames,					"Accepts a list of strings to be used as rownames, if the elements are named they will be accessible later through fieldname.")
+		.method("getRowNames",					&jaspTable_Interface::getRowNames,					"Returns a list of row names.")
 
 		.property("rowTitles",					&jaspTable_Interface::getRowTitles,					"List of rowtitles, single elements can be get and set here directly through [['']] notation but setting all rowtitles at once should be done through setRowTitles. This will respond in a similar manner to conflicts between an indexed title and a fieldnamed title. See documentation of colTitles.")
 		.method("setRowTitles",					&jaspTable_Interface::setRowTitles,					"Accepts a list of strings to be used as rowtitles, if the elements are named they will be accessible later through fieldname.")

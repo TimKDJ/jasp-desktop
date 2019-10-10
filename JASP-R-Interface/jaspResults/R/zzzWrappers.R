@@ -251,23 +251,21 @@ jaspStateR <- R6Class(
 	cloneable = FALSE,
 	public    = list(
 		initialize = function(object=NULL, dependencies=NULL, jaspObject=NULL) {
-			if (!is.null(jaspObject)) {
-			  private$jaspObject <- jaspObject
-			  return()
-			} else if (jaspResultsCalledFromJasp()) {
-				stateObj <- jaspResultsModule$create_cpp_jaspState("")
-			} else {
-				checkForJaspResultsInit()
-				stateObj <- create_cpp_jaspState("")
-			}
-			if (!is.null(object))
-				stateObj$object <- object
+			if (is.null(jaspObject)) {
+			  if (jaspResultsCalledFromJasp()) {
+				  jaspObject <- jaspResultsModule$create_cpp_jaspState("")
+			  } else {
+				  checkForJaspResultsInit()
+				  jaspObject <- create_cpp_jaspState("")
+			  }
+      }
+      private$jaspObject <- jaspObject
+      
+      if (!is.null(object))
+				self$object <- object
 			
 			if (!is.null(dependencies))
-				stateObj$dependOnOptions(dependencies)
-
-			private$jaspObject <-  stateObj
-			return()
+				self$dependOn(dependencies)
 		}
 	),
 	active = list(
@@ -307,28 +305,26 @@ jaspHtmlR <- R6Class(
 	public    = list(
 		initialize = function(text="", elementType="p", class="", dependencies=NULL, title="hide me", position=NULL, jaspObject = NULL) {
 			# if you change "hide me" here then also change it in Common.R and in HtmlNode.js or come up with a way to define it in such a way to make it show EVERYWHERE...
-			if (!is.null(jaspObject)) {
-			  private$jaspObject <- jaspObject
-			  return()
-			} else if (jaspResultsCalledFromJasp()) {
-				htmlObj <- jaspResultsModule$create_cpp_jaspHtml(text)
-			} else {
-				checkForJaspResultsInit()
-				htmlObj <- create_cpp_jaspHtml(text)
+			if (is.null(jaspObject)) {
+			  if (jaspResultsCalledFromJasp()) {
+				  jaspObject <- jaspResultsModule$create_cpp_jaspHtml("")
+			  } else {
+				  checkForJaspResultsInit()
+				  jaspObject <- create_cpp_jaspHtml("")
+        }
 			}
+      private$jaspObject <- jaspObject
 			
-			htmlObj$elementType <- elementType
-			htmlObj$class       <- class
-			htmlObj$title       <- title
+      self$text        <- text
+			self$elementType <- elementType
+			self$class       <- class
+			self$title       <- title
 			
 			if (!is.null(dependencies))
-				htmlObj$dependOnOptions(dependencies)
+				self$dependOn(dependencies)
 			
 			if (is.numeric(position))
-				htmlObj$position = position
-			
-			private$jaspObject <- htmlObj
-			return()
+				self$position <- position
 		}
 	),
 	active = list(
@@ -344,24 +340,23 @@ jaspContainerR <- R6Class(
 	cloneable = FALSE,
 	public    = list(
 		initialize = function(title = "", dependencies = NULL, position = NULL, jaspObject = NULL) {
-			if (!is.null(jaspObject)) {
-			  private$jaspObject <- jaspObject
-			  return()
-			} else if (jaspResultsCalledFromJasp()) {
-				container <- jaspResultsModule$create_cpp_jaspContainer(title)
-			} else {
-				checkForJaspResultsInit()
-				container <- create_cpp_jaspContainer(title) # If we use R's constructor it will garbage collect our objects prematurely.. #new(jaspResultsModule$jaspContainer, title))
-			}
-			
+			if (is.null(jaspObject)) {
+        if (jaspResultsCalledFromJasp()) {
+          jaspObject <- jaspResultsModule$create_cpp_jaspContainer("")
+        } else {
+          checkForJaspResultsInit()
+          jaspObject <- create_cpp_jaspContainer("") # If we use R's constructor it will garbage collect our objects prematurely.. #new(jaspResultsModule$jaspContainer, title))
+        }
+      }
+			private$jaspObject <- jaspObject
+      
+      self$title <- title
+      
 			if (!is.null(dependencies))
-				container$dependOnOptions(dependencies)
+				self$dependOn(dependencies)
 			
 			if (is.numeric(position))
-				container$position = position
-			
-			private$jaspObject <- container
-			return()
+				self$position <- position
 		}
 	),
 	private	= list(
@@ -403,6 +398,20 @@ jaspContainerR <- R6Class(
 }
 `[[.jaspContainerR`   <- function(x, field)
 	x$.__enclos_env__$private$getField(field)
+
+initializeJaspObject <- function(withinJaspInitializer, outsideJaspInitializer, jaspObject, ...) {
+  if (!is.null(jaspObject))
+    return(jaspObject)
+  
+  if (jaspResultsCalledFromJasp()) {
+    jaspObject <- withinJaspInitializer(...)
+  } else {
+    checkForJaspResultsInit()
+    jaspObject  <- outsideJaspInitializer(...) # If we use R's constructor it will garbage collect our objects prematurely..
+  }
+  
+  return(jaspObject)
+}
 	
 jaspPlotR <- R6Class(
 	classname = "jaspPlotR",
@@ -411,39 +420,37 @@ jaspPlotR <- R6Class(
 	public    = list(
 		initialize = function(plot=NULL, title="", width=320, height=320, aspectRatio=0, error=NULL, 
 							  dependencies=NULL, position=NULL, jaspObject = NULL) {
-			if (!is.null(jaspObject)) {
-			  private$jaspObject <- jaspObject
-			  return()
-			} else if (jaspResultsCalledFromJasp()) {
-				jaspPlotObj <- jaspResultsModule$create_cpp_jaspPlot(title)
-			} else {
-				checkForJaspResultsInit()
-				jaspPlotObj  <- create_cpp_jaspPlot(title) # If we use R's constructor it will garbage collect our objects prematurely.. #new(jaspResultsModule$jaspPlot, title)
+			if (is.null(jaspObject)) {
+			  if (jaspResultsCalledFromJasp()) {
+				  jaspObject <- jaspResultsModule$create_cpp_jaspPlot("")
+			  } else {
+				  checkForJaspResultsInit()
+				  jaspObject  <- create_cpp_jaspPlot("") # If we use R's constructor it will garbage collect our objects prematurely.. #new(jaspResultsModule$jaspPlot, title)
+			  }
 			}
-			
+      private$jaspObject <- jaspObject
+      
 			if (aspectRatio > 0 && !is.null(width) && width != 0)
-				height = aspectRatio * width
+				height <- aspectRatio * width
 			else if (aspectRatio > 0)
-				width = height / aspectRatio
+				width <- height / aspectRatio
 			
-			jaspPlotObj$width  <- width
-			jaspPlotObj$height <- height
-			jaspPlotObj$aspectRatio <- aspectRatio
+			self$width  <- width
+			self$height <- height
+			self$aspectRatio <- aspectRatio		
+      self$title <- title
 			
 			if (!is.null(error))
-				jaspPlotObj$setError(error)
+				self$setError(error)
 			
 			if (!is.null(plot))
-				jaspPlotObj$plotObject <- private$handleErrors(plot)
+				self$plotObject <- plot
 			
-			if(!is.null(dependencies))
-				jaspPlotObj$dependOnOptions(dependencies)
+			if (!is.null(dependencies))
+				self$dependOn(dependencies)
 			
-			if(is.numeric(position))
-				jaspPlotObj$position = position
-			
-			private$jaspObject <- jaspPlotObj
-			return()
+			if (is.numeric(position))
+				self$position <- position
 		}
 	),
 	active = list(
@@ -461,45 +468,44 @@ jaspTableR <- R6Class(
 	cloneable = FALSE,
 	public    = list(
 		initialize = function(title="", data=NULL, colNames=NULL, colTitles=NULL, overtitles=NULL, colFormats=NULL, rowNames=NULL, rowTitles=NULL, dependencies=NULL, position=NULL, jaspObject=NULL) {
-			if (!is.null(jaspObject)) {
-			  private$jaspObject <- jaspObject
-			  return()
-			} else if (jaspResultsCalledFromJasp()) {
-				jaspObj <- jaspResultsModule$create_cpp_jaspTable(title)
-			} else {
-				checkForJaspResultsInit()
-				jaspObj <- create_cpp_jaspTable(title) # If we use R's constructor it will garbage collect our objects prematurely.. #new(jaspResultsModule$jaspTable, title)
-			}
-			
-			if (!is.null(data))
-				jaspObj$setData(private$handleErrors(data))
+			if (is.null(jaspObject)) {
+        if (jaspResultsCalledFromJasp()) {
+          jaspObject <- jaspResultsModule$create_cpp_jaspTable("")
+        } else {
+          checkForJaspResultsInit()
+          jaspObject <- create_cpp_jaspTable("") # If we use R's constructor it will garbage collect our objects prematurely.. #new(jaspResultsModule$jaspTable, title)
+        }
+      }
+      private$jaspObject <- jaspObject
+      
+      self$title <- title
+      
+      if (!is.null(data))
+				self$setData(data)
 			
 			if (!is.null(colNames))
-				jaspObj$setColNames(colNames)
-			
-			if (!is.null(colTitles))
-				jaspObj$setColTitles(colTitles)
-			
-			if (!is.null(overtitles))
-				jaspObj$setColOvertitles(overtitles)
-			
-			if (!is.null(colFormats))
-				jaspObj$setColFormats(colFormats)
-			
-			if (!is.null(rowNames))
-				jaspObj$setRowNames(rowNames)
-			
-			if (!is.null(rowTitles))
-				jaspObj$setRowTitles(rowTitles)
+				self$setColNames(colNames)
+      
+#       if (!is.null(rowNames))
+#         self$setRowNames(rowNames)
+#       
+#       if (!is.null(rowTitles))
+#         self$setRowTitles(rowTitles)
+# 			
+# 			if (!is.null(colTitles))
+# 				self$setColTitles(colTitles)
+# 			
+# 			if (!is.null(overtitles))
+# 				self$setColOvertitles(overtitles)
+# 			
+# 			if (!is.null(colFormats))
+# 				self$setColFormats(colFormats)
 			
 			if (!is.null(dependencies))
-				jaspObj$dependOnOptions(dependencies)
+				self$dependOn(dependencies)
 			
 			if (is.numeric(position))
-				jaspObj$position <- position
-				
-			private$jaspObject <- jaspObj
-			return()
+				self$position <- position
 		},
 		addColumns  = function(cols) private$jaspObject$addColumns(cols),
 		setData     = function(data) private$jaspObject$setData(private$handleErrors(data)),
@@ -539,7 +545,7 @@ jaspTableR <- R6Class(
         if (is.null(rowNames))    private$jaspObject$addRows(rows)
         else                      private$jaspObject$addRows(rows, rowNames)
       }
-  },
+    },
 		setExpectedSize = function(rows=NULL, cols=NULL) {
 			inputTypes <- c(mode(rows), mode(cols))
 
@@ -565,7 +571,13 @@ jaspTableR <- R6Class(
     getRowName          = function(rowIndex)                  { return( private$jaspObject$rowNames           [[rowIndex]]);                  },
     setRowName          = function(rowIndex, newName)         {         private$jaspObject$rowNames$insert(     rowIndex,     newName);       },
     getRowTitle         = function(rowName)                   { return( private$jaspObject$rowTitles          [[rowName]]);                   },
-    setRowTitle         = function(rowName, newTitle)         {         private$jaspObject$rowTitles$insert(    rowName,      newTitle);      }
+    setRowTitle         = function(rowName, newTitle)         {         private$jaspObject$rowTitles$insert(    rowName,      newTitle);      },
+		setColNames         = function(val)                       {         private$jaspObject$setColNames(val)                                   },
+		getColNames         = function()                          {         private$jaspObject$getColNames()                                      },
+		setRowNames         = function(val)                       {         private$jaspObject$setRowNames(val)                                   },
+		getRowNames         = function()                          {         private$jaspObject$getRowNames()                                      },
+		nrow                = function()                          {         length(self$getRowNames())                                            },
+		ncol                = function()                          {         length(self$getColNames())                                            }
 	),
 	active = list(
 		transpose                = function(x) if (missing(x)) private$jaspObject$transpose                else private$jaspObject$transpose                <- x,
@@ -585,6 +597,38 @@ jaspTableR <- R6Class(
 }
 `[[.jaspTableR`   <- function(x, field)
 	x$.__enclos_env__$private$getField(field)
+  
+names.jaspTableR <- function(x) {
+  x$getColNames()
+}
+
+`names<-.jaspTableR` <- function(x, value) {
+  x$setColNames(value)
+  x
+}
+
+dimnames.jaspTableR <- function(x) {
+  list(x$getRowNames(), x$getColNames())
+}
+
+`dimnames<-.jaspTableR` <- function(x, value) {
+  if (!is.list(value) || length(value) != 2L) 
+    stop("invalid 'dimnames' given for jaspTable, expecting list of length two (rows, cols)")
+  value[[1L]] <- as.character(value[[1L]])
+  value[[2L]] <- as.character(value[[2L]])
+  
+  dimTable <- dim(x)
+  if (dimTable[[1L]] != length(value[[1L]]) || dimTable[[2L]] != length(value[[2L]]))
+   stop("invalid 'dimnames' given for jaspTable, length of names must match number of cols and rows")
+  
+  x$setRowNames(value[[1L]])
+  x$setColNames(value[[2L]])
+  x
+}
+
+dim.jaspTableR <- function(x) {
+  c(x$nrow(), x$ncol())
+}
 
 jaspColumnR <- R6Class(
   classname = "jaspColumnR",
