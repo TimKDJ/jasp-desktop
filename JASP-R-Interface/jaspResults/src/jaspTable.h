@@ -101,6 +101,9 @@ public:
 	Json::Value	dataEntry(std::string & errorMessage)	const	override;
 	std::string	toHtml()										override;
 
+	const jaspStringlist& getColNames()		const	{ return _colNames; }
+	const jaspStringlist& getRowNames()		const	{ return _rowNames; }
+	
 	std::string defaultColName(size_t col)	const	{ return "col"+ std::to_string(col); }
 	std::string defaultRowName(size_t row)	const	{ return "row"+ std::to_string(row); }
 	std::string	getRowName(size_t row)		const	{ return _rowNames[row] == "" ? defaultRowName(row) : _rowNames[row]; }
@@ -365,13 +368,13 @@ class jaspTable_Interface : public jaspObject_Interface
 public:
 	jaspTable_Interface(jaspObject * dataObj) : jaspObject_Interface(dataObj) {}
 
-	jaspStringlist_Interface	getColNames()			{ return jaspStringlist_Interface(	&(((jaspTable*)myJaspObject)->_colNames)		); }
+	Rcpp::CharacterVector		getColNames()			{ return Rcpp::wrap(((jaspTable*)myJaspObject)->getColNames().getRows()); 			}
+	Rcpp::CharacterVector		getRowNames()			{ return Rcpp::wrap(((jaspTable*)myJaspObject)->getRowNames().getRows()); 			}
 	jaspStringlist_Interface	getColTypes()			{ return jaspStringlist_Interface(	&(((jaspTable*)myJaspObject)->_colTypes)		); }
 	jaspStringlist_Interface	getColTitles()			{ return jaspStringlist_Interface(	&(((jaspTable*)myJaspObject)->_colTitles)		); }
 	jaspStringlist_Interface	getColOvertitles()		{ return jaspStringlist_Interface(	&(((jaspTable*)myJaspObject)->_colOvertitles)	); }
 	jaspStringlist_Interface	getColFormats()			{ return jaspStringlist_Interface(	&(((jaspTable*)myJaspObject)->_colFormats)		); }
 	jaspBoollist_Interface		getColCombines()		{ return jaspBoollist_Interface(	&(((jaspTable*)myJaspObject)->_colCombines)		); }
-	jaspStringlist_Interface	getRowNames()			{ return jaspStringlist_Interface(	&(((jaspTable*)myJaspObject)->_rowNames)		); }
 	jaspStringlist_Interface	getRowTitles()			{ return jaspStringlist_Interface(	&(((jaspTable*)myJaspObject)->_rowTitles)		); }
 
 	void setColNames(Rcpp::List newNames)				{ ((jaspTable*)myJaspObject)->setColNames(newNames);		}

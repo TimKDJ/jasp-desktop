@@ -121,6 +121,12 @@ public:
 					_field_to_val[Rcpp::as<std::string>(namesList[row])] = Rcpp::as<T>(vec[row]);
 		}
 	}
+	
+	const std::vector<T>& getRows() const
+	{
+		return _rows;
+	}
+	
 
 	size_t rowCount()	const { return _rows.size(); }
 	size_t fieldCount()	const { return _field_to_val.size(); }

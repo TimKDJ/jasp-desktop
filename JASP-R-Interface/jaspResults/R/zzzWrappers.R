@@ -573,9 +573,9 @@ jaspTableR <- R6Class(
     getRowTitle         = function(rowName)                   { return( private$jaspObject$rowTitles          [[rowName]]);                   },
     setRowTitle         = function(rowName, newTitle)         {         private$jaspObject$rowTitles$insert(    rowName,      newTitle);      },
 		setColNames         = function(val)                       {         private$jaspObject$setColNames(val)                                   },
-		getColNames         = function()                          {         private$jaspObject$getColNames()                                      },
+		getColNames         = function()                          {         private$jaspObject$colNames                                           },
 		setRowNames         = function(val)                       {         private$jaspObject$setRowNames(val)                                   },
-		getRowNames         = function()                          {         private$jaspObject$getRowNames()                                      },
+		getRowNames         = function()                          {         private$jaspObject$rowNames                                           },
 		nrow                = function()                          {         length(self$getRowNames())                                            },
 		ncol                = function()                          {         length(self$getColNames())                                            }
 	),
