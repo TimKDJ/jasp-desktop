@@ -353,7 +353,7 @@ BainTTestBayesianPairedSamples <- function(jaspResults, dataset, options, ...) {
             ggplotObj <- .plotGroupMeanBayesOneSampleTtest(variable=difference, variableName=paste0(pair[[1]]," - ", pair[[2]]),
                             testValueOpt=0, descriptivesPlotsCredibleInterval=options$descriptivesPlotsCredibleInterval)
             jaspResults[["descriptivesPlots"]][[paste(pair, collapse=" - ")]]        <- createJaspPlot(plot=ggplotObj, title = paste(pair, collapse=" - "))
-            jaspResults[["descriptivesPlots"]][[paste(pair, collapse=" - ")]]        $dependOn(optionContainsValue=list(pairs = pair))
+            jaspResults[["descriptivesPlots"]][[paste(pair, collapse=" - ")]]        $dependOn(optionContainsValue=list(pairs = list(pair)))
           }
       }
   } else if (options[["descriptivesPlots"]]) {

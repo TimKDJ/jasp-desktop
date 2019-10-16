@@ -541,7 +541,7 @@ JASPControl
 				
 				property bool clearOtherSelectedItemsWhenClicked: false
 				property bool selected:				listView.selectedItems.includes(rank)
-				property bool isDependency:			variablesList.dependencyMustContain.indexOf(colName.text) >= 0
+				property bool isDependency:			variablesList.dependencyMustContain.indexOf(model.json) >= 0
 				property bool dragging:				false
 				property int offsetX:				0
 				property int offsetY:				0

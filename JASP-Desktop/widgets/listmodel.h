@@ -35,7 +35,8 @@ public:
         NameRole = Qt::UserRole + 1,
 		TypeRole,
 		ColumnTypeRole,
-		ExtraColumnsRole
+		ExtraColumnsRole,
+		JsonRole
     };
 
 	ListModel(QMLListView* listView);

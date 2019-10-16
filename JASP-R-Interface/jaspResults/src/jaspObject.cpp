@@ -349,14 +349,14 @@ bool jaspObject::checkDependencies(Json::Value currentOptions)
 
 		for(auto & keyval : _optionMustContain)
 		{
-			bool foundIt = false;
+			const Json::Value & currentOption = currentOptions.get(keyval.first, Json::arrayValue);
 
-			for(auto & contains : currentOptions.get(keyval.first, Json::arrayValue))
-				if(contains == keyval.second)
-					foundIt = true;
+			//Hopefully the hash of Json::Value works properly for arrays etc
+			std::set<Json::Value> containsSet(currentOption.begin(), currentOption.end());
 
-			if(!foundIt)
-				return false;
+			for(const Json::Value & containThisPlease : keyval.second)
+				if(containsSet.count(containThisPlease) == 0)
+					return false;
 		}
 	}
 
@@ -426,8 +426,13 @@ std::map<std::string, std::set<std::string>> jaspObject::nestedMustContains() co
 
 	for(const auto & keyval : _optionMustContain)
 		if(keyval.second.isArray())
+		{
 			for(const Json::Value & entry : keyval.second)
-				out[keyval.first].insert(entry.asString());
+				if(entry.isString())
+					out[keyval.first].insert(entry.asString());
+				else
+					out[keyval.first].insert(entry.toStyledString());
+		}
 		else if(keyval.second.isString())
 			out[keyval.first].insert(keyval.second.asString());
 		else

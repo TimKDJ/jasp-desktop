@@ -38,6 +38,7 @@ QHash<int, QByteArray> ListModel::roleNames() const
 		roles[ColumnTypeRole]	= "columnType";
 		roles[NameRole]			= "name";
 		roles[ExtraColumnsRole] = "extraColumns";
+		roles[JsonRole]			= "json";
 
 		setMe = false;
 	}
@@ -101,6 +102,12 @@ QVariant ListModel::data(const QModelIndex &index, int role) const
 	{
 		Term term = _terms.at(row);
 		return QVariant(term.asQString());
+	}
+
+	if (role == ListModel::JsonRole)
+	{
+		Term term = _terms.at(row);
+		return QVariant(tq(term.asJson()));
 	}
 	
 	if (!areTermsVariables())

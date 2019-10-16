@@ -20,6 +20,7 @@
 #include "utilities/qutils.h"
 
 #include <sstream>
+#include "lib_json/json.h"
 
 
 using namespace std;
@@ -99,6 +100,16 @@ const std::vector<string> &Term::scomponents() const
 const string &Term::asString() const
 {
 	return _asString;
+}
+
+const string Term::asJson() const
+{
+	Json::Value v = Json::arrayValue;
+
+	for (const QString &comp : _components)
+		v.append(fq(comp));
+
+	return v.toStyledString();
 }
 
 bool Term::contains(const string &component) const
