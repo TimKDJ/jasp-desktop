@@ -307,86 +307,71 @@ ContingencyTablesBayesian <- function(jaspResults, dataset = NULL, options, ...)
 }
 
 .contTabBasComputeBF <- function(options, counts.matrix, ready) {
-  fixedMargin <- NULL
-  if (options$samplingModel == "poisson") {
-    bfEndLab    <- "Poisson"
-    sampleType  <- "poisson"
-  } else if (options$samplingModel == "jointMultinomial"){
-    bfEndLab    <- "joint multinomial"
-    sampleType  <- "jointMulti"
-  } else if (options$samplingModel =="independentMultinomialRowsFixed"){
-    bfEndLab    <- "independent multinomial"
-    sampleType  <- "indepMulti"
-    fixedMargin <- "rows"
-  } else if (options$samplingModel =="independentMultinomialColumnsFixed"){
-    bfEndLab    <- "independent multinomial"
-    sampleType  <- "indepMulti"
-    fixedMargin <- "cols"
-  } else if (options$samplingModel=="hypergeometric"){
-    bfEndLab    <- "hypergeometric"
-    sampleType  <- "hypergeom"
-  } else
-    stop("Invalid sampling model selected")
+  results <- list()
+  
+  results[["bfTitle"]]  <- .contTabGetBFTitle(options$hypothesis)
+  results[["bfEndLab"]] <- switch(modelType, 
+                                  jointMultinomial                   = "joint multinomial",
+                                  independentMultinomialRowsFixed    = "independent multinomial",
+                                  independentMultinomialColumnsFixed = "independent multinomial",
+                                  modelType))
+  
   BF <- try({
-    BayesFactor::contingencyTableBF(counts.matrix, sampleType = sampleType, 
-                                    priorConcentration = options$priorConcentration, 
-                                    fixedMargin = fixedMargin) })
-  bf1  <- exp(as.numeric(BF@bayesFactor$bf))
-  lbf1 <- as.numeric(BF@bayesFactor$bf)
-  rowsOrCols <- c("independentMultinomialRowsFixed", "independentMultinomialColumnsFixed")
-  if(options$samplingModel != "hypergeometric")
-    ch.result <- BayesFactor::posterior(BF, iterations = 10000)
-  if(options$hypothesis %in% c("groupOneGreater", "groupTwoGreater")){
-    if(options$samplingModel %in% c("poisson", "jointMultinomial")){
-      theta <- as.data.frame(ch.result)
-      odds.ratio <- (theta[,1]*theta[,4])/(theta[,2]*theta[,3])
-      logOR <- log(odds.ratio)
-      if(options$hypothesis == "groupOneGreater")
-        prop.consistent <- 1 - mean(logOR < 0)
-      else 
-        prop.consistent <- mean(logOR < 0)
-    } else if(options$samplingModel %in% rowsOrCols) {
-      theta <- as.data.frame(ch.result[,7:10])
-      if(options$samplingModel == "independentMultinomialRowsFixed"){
-        if(options$hypothesis == "groupOneGreater")
-          prop.consistent <- mean(theta[,1] > theta[,2])
-        else 
-          prop.consistent <- mean(theta[,1] < theta[,2])
-      } else if(options$samplingModel == "independentMultinomialColumnsFixed") {
-        if(options$hypothesis == "groupOneGreater")
-          prop.consistent <- mean(theta[,1] > theta[,3])
-        else 
-          prop.consistent <- mean(theta[,1] < theta[,3])
-      }
-    }
-    if(options$samplingModel != "hypergeometric") {
-      bf1  <- bf1 * prop.consistent / 0.5
-      lbf1 <- lbf1 + log(prop.consistent) - log(0.5)
-    }
+    BayesFactor::contingencyTableBF(
+      x                  = counts.matrix, 
+      priorConcentration = options$priorConcentration, 
+      sampleType         = switch(modelType,
+                                  jointMultinomial                   = "jointMulti",
+                                  independentMultinomialRowsFixed    = "indepMulti",
+                                  independentMultinomialColumnsFixed = "indepMulti",
+                                  hypergeometric                     = "hypergeom",
+                                  modelType),
+      fixedMargin        = switch(modelType,
+                                  independentMultinomialRowsFixed    = "rows",
+                                  independentMultinomialColumnsFixed = "cols"))
+  })
+  
+  if (inherits(BF, "try-error")) {
+    results[["bf10"]] <- BF
+    return(results)
   }
   
-  if(options$hypothesis == "groupOneGreater") {
-    if (options$bayesFactorType == "BF10")
-      bfTitle <- "BF\u208A\u2080"
-    else if (options$bayesFactorType == "BF01")
-      bfTitle <- "BF\u2080\u208A"
-    else if (options$bayesFactorType == "LogBF10") 
-      bfTitle <- "Log\u2009(\u2009BF\u208A\u2080\u2009)"
-  } else if(options$hypothesis == "groupTwoGreater"){
-    if (options$bayesFactorType == "BF10")
-      bfTitle <- "BF\u208B\u2080"
-    else if (options$bayesFactorType == "BF01")
-      bfTitle <- "BF\u2080\u208B"
-    else if (options$bayesFactorType == "LogBF10")
-      bfTitle <-	"Log\u2009(\u2009BF\u208B\u2080\u2009)"
-  } else if(options$hypothesis == "groupsNotEqual" || 
-            options$samplingModel == "hypergeometric") {
-    if (options$bayesFactorType == "BF10")
-      bfTitle <- "BF\u2081\u2080"
-    else if (options$bayesFactorType == "BF01") 
-      bfTitle <- "BF\u2080\u2081"
-    else if (options$bayesFactorType == "LogBF10") 
-      bfTitle <-	"Log\u2009(\u2009BF\u2081\u2080\u2009)"
+  if (options$samplingModel != "hypergeometric")
+    results[["post.samples"]] <- BayesFactor::posterior(BF, iterations = 10000)
+  
+  bf1  <- exp(as.numeric(BF@bayesFactor$bf))
+  lbf1 <- as.numeric(BF@bayesFactor$bf)
+  if (options$hypothesis %in% c("groupOneGreater", "groupTwoGreater") && options$samplingModel != "hypergeometric") {
+    
+    if (options$samplingModel %in% c("poisson", "jointMultinomial")) {
+      
+      theta <- as.data.frame(results[["post.samples"]])
+      odds.ratio <- (theta[, 1] * theta[, 4]) / (theta[, 2] * theta[, 3])
+      if (options$hypothesis == "groupOneGreater")
+        prop.consistent <- 1 - mean(log(odds.ratio) < 0)
+      else 
+        prop.consistent <- mean(log(odds.ratio) < 0)
+      
+    } else if (options$samplingModel %in% c("independentMultinomialRowsFixed", "independentMultinomialColumnsFixed")) {
+      
+      theta <- as.data.frame(results[["post.samples"]][, 7:10])
+      if (options$samplingModel == "independentMultinomialRowsFixed") {
+        if (options$hypothesis == "groupOneGreater")
+          prop.consistent <- mean(theta[, 1] > theta[, 2])
+        else 
+          prop.consistent <- mean(theta[, 1] < theta[, 2])
+      } else if (options$samplingModel == "independentMultinomialColumnsFixed") {
+        if (options$hypothesis == "groupOneGreater")
+          prop.consistent <- mean(theta[, 1] > theta[, 3])
+        else 
+          prop.consistent <- mean(theta[, 1] < theta[, 3])
+      }
+      
+    }
+    
+    bf1  <- bf1 * prop.consistent / 0.5
+    lbf1 <- lbf1 + log(prop.consistent) - log(0.5)
+    
   }
   
   if (options$bayesFactorType == "BF10")
@@ -396,13 +381,7 @@ ContingencyTablesBayesian <- function(jaspResults, dataset = NULL, options, ...)
   else if (options$bayesFactorType == "LogBF10")
     bfVal <- lbf1
   
-  bfList <- list("bfTitle"      = bfTitle,
-                 "bfEndLab"     = bfEndLab,
-                 "bfVal"        = bfVal,
-                 "bf10"         = bf1)
-  if(options$samplingModel != "hypergeometric")
-    bfList$post.samples <- ch.result
-  return(bfList)
+  return(results)
 }
 
 .contTabBasBFFootnote <- function(options, counts.matrix, analysisContainer, ready) {
@@ -677,4 +656,29 @@ ContingencyTablesBayesian <- function(jaspResults, dataset = NULL, options, ...)
     quantiles <- qnorm(leftArea * c(lower, .5, upper), mean, sd)
   }
   return(list(ci.lower = quantiles[1], ci.median = quantiles[2], ci.upper = quantiles[3]))
+}
+
+.contTabGetBFTitle <- function(hypothesis) {
+  if (options$hypothesis == "groupOneGreater") {
+    if (options$bayesFactorType == "BF10")
+      bfTitle <- "BF\u208A\u2080"
+    else if (options$bayesFactorType == "BF01")
+      bfTitle <- "BF\u2080\u208A"
+    else if (options$bayesFactorType == "LogBF10") 
+      bfTitle <- "Log\u2009(\u2009BF\u208A\u2080\u2009)"
+  } else if (options$hypothesis == "groupTwoGreater"){
+    if (options$bayesFactorType == "BF10")
+      bfTitle <- "BF\u208B\u2080"
+    else if (options$bayesFactorType == "BF01")
+      bfTitle <- "BF\u2080\u208B"
+    else if (options$bayesFactorType == "LogBF10")
+      bfTitle <-	"Log\u2009(\u2009BF\u208B\u2080\u2009)"
+  } else if (options$hypothesis == "groupsNotEqual") {
+    if (options$bayesFactorType == "BF10")
+      bfTitle <- "BF\u2081\u2080"
+    else if (options$bayesFactorType == "BF01") 
+      bfTitle <- "BF\u2080\u2081"
+    else if (options$bayesFactorType == "LogBF10") 
+      bfTitle <-	"Log\u2009(\u2009BF\u2081\u2080\u2009)"
+  }
 }
