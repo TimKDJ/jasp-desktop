@@ -91,6 +91,10 @@ anova(dep = "contNormal",
 
 ## Part III: Implementation Details
 
+### Flow chart
+
+![image info](flow-chart-syntax-mode(2).png)
+
 ### Generating a Wrapper Around an Analysis
 We need an automatically generated wrapper around the main analysis function. This wrapper should deal with the setup and breakdown of jaspResults, as well as the validation of provided options.
 -    Thin wrapper around analysis that creates the options list and initializes jaspResults
@@ -117,19 +121,23 @@ A number of packages need to be created with distinct sets of functionality. Doi
 - `jaspTools`: A package that aids an R analysis developer with the creation of their JASP R analysis. It exports functions related to the creation of an JASP-R package skeleton, the handling of translations, creation of a wrapper, etc.
 
 #### Analysis Environment
-The `jaspAnalysis` package needs to
--    jaspResults needs to be kept within package
--   automatically inserted functions should be inserted from JASP
+To ensure analyses can be run from R, the `jaspAnalysis` package needs to
+- Provide drop-in replacements for the cpp functions defined in `jasprcpp.cpp` (e.g., `encodeColNamesStrict`).
+- Make column encoding available to ensure that when an analysis works in JASP it will also work in R.
+- Make the `jaspResults` object assignable to a variable, in this way users can run multiple analyses.
 
 #### Result Structure
--    Results structure should not be so nested
+The output an RStudio gets from an analysis must be a sensible data structure:
+- The excessive nesting must be reduced to top level elements.
+- Names must be short and to the point, instead of the long concatenations.
+- Plots should go directly to the plotviewer.
+- Tables need to be a common format like a regular data.frames or the like that allows users to easily use them for further analysis (there might be some trouble with casesAcrossColumns and column folding).
+- There needs to be a good ASCII print of jaspHtml and jaspTables that closely mimics the output in JASP (there is some package that can do this too -- it also adds footnotes).
 
-#### Plots
--    Plots go to plotviewer
-
-#### Tables
--    Tables need to be prettier ASCII (there is some package that adds a footnote)
--    Tables need more normal names
+#### Analysis Info
+The user will need access to the help provided in JASP:
+- `?jasp::banova` should return a common help index page of the input arguments (TODO see generating a wrapper).
+- `info(jasp::banova(...args...))` could be used to return an enriched ASCII representation of the analysis. Each output element will have info added next to it; these info elements can be extracted from the `$addInfo`'s used in the analysis.
 
 Problems:
 -    Can analyses have multiple formulas?
