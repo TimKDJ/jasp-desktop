@@ -188,6 +188,36 @@ anova <- function(fixedFactors = "", descriptives = FALSE, ci = 95) {
 </details>
 
 #### Specifying a Formula
+Our goal with the formula is to make it easier to specify model terms. The formula will be a summary of multiple `AssignedVariableList`s from which we will be able to piece together the model terms again. It's important to note that if the suggested columns of terms on the same side overlap, then they cannot be correctly identified from the formula. As an example if two variableforms
+Formula's consist of left hand side (lhs) and right hand side (rhs) operators. The lhs consists of dependent variables that are `+` separated. The rhs consists of independent variables that are also `+` separated; rhs terms may also contain interactions of independent variables -- specified by `*`. If terms on one side are of distinct types 
+
+To specify formula's we need to introduce two new properties to the qml: `positionInFormula` (`"lhs"` or `"rhs"`) and `modelSpecification` (boolean). `positionInFormula` can be used to specify where the terms need to go in a formula. `modelSpecification` needs to be set to `true` if an `AssignedVariablesList` exists that dictates which rhs terms are included in the model (this is the case in the ANOVA's and Regression's); the terms included in this `AssignedVariablesList` have precedence over terms specified with `"rhs"` and also specify the interactions.
+
+<details>
+
+<summary>Example of specifying a formula in qml</summary>
+
+```
+VariablesForm
+{
+    AvailableVariablesList { name: "allVariablesList" }
+    AssignedVariablesList  { name: "dependent";		title: qsTr("Dependent Variable");	positionFormula: "lhs"; suggestedColumns: ["scale"]; singleVariable: true;   }
+    AssignedVariablesList  { name: "fixedFactors";	title: qsTr("Fixed Factors");		positionFormula: "rhs"; suggestedColumns: ["ordinal", "nominal"];            }
+    AssignedVariablesList  { name: "randomFactors";	title: qsTr("Random Factors");		positionFormula: "rhs"; suggestedColumns: ["ordinal", "nominal"];            }
+    AssignedVariablesList  { name: "wlsWeights";	title: qsTr("WLS Weights");	                                suggestedColumns: ["scale"]; singleVariable:         }
+}
+```
+
+This analysis has model terms so we specify this is the case and consequently the rhs of the formula will be populated by this field:
+```
+VariablesForm
+{
+    AvailableVariablesList { name: "components"; title: qsTr("Components"); source: ["fixedFactors", "randomFactors"]                 }
+    AssignedVariablesList  { name: "modelTerms"; title: qsTr("Model Terms"); listViewType: JASP.Interaction; modelSpecification: true }
+}
+```
+
+</details>
 
 ### The Wrapper
 The wrapper should deal with the setup and breakdown of jaspResults, as well as the validation of provided options.
@@ -512,5 +542,5 @@ Problems:
 -    Can analyses have multiple formulas?
 -    Where to add formula and isNuisance in the options list? Model terms?
 -    `jaspAnalysis` will not be an R package in JASP; how can we translate it?
-
+-   how do we name the main analysis function?
 
