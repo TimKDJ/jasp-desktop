@@ -1,26 +1,54 @@
-# Part I: Definition and Goals
+- [Part I. Definition and Goals](#part-i-definition-and-goals)
+  - [Definition](#definition)
+  - [Use Case](#use-case)
+  - [Primary Goals of the Syntax Mode Implementation](#primary-goals-of-the-syntax-mode-implementation)
+  - [Intended Limitations of Syntax Mode](#intended-limitations-of-syntax-mode)
+- [Part II. Examples of the Intended Syntax](#part-ii-examples-of-the-intended-syntax)
+  - [Filters](#filters)
+  - [Computed Columns](#computed-columns)
+  - [Analyses](#analyses)
+      - [Formulas](#formulas)
+- [Part III. Implementation Details](#part-iii-implementation-details)
+  - [Creating the Syntax Mode Building Blocks](#creating-the-syntax-mode-building-blocks)
+    - [Obtaining the Necessary Information](#obtaining-the-necessary-information)
+      - [Additional Thoughts](#additional-thoughts)
+    - [The Wrapper](#the-wrapper)
+      - [Additional Thoughts](#additional-thoughts-1)
+    - [The Formula](#the-formula)
+      - [Additional Thoughts](#additional-thoughts-2)
+    - [The Options Class](#the-options-class)
+      - [Additional Thoughts](#additional-thoughts-3)
+  - [User Interaction with the Syntax Mode within JASP](#user-interaction-with-the-syntax-mode-within-jasp)
+    - [Displaying Syntax in JASP](#displaying-syntax-in-jasp)
+    - [Running Syntax in the JASP R Editor](#running-syntax-in-the-jasp-r-editor)
+      - [Additional Thoughts](#additional-thoughts-4)
+  - [User Interaction with the Syntax Mode within RStudio](#user-interaction-with-the-syntax-mode-within-rstudio)
+    - [Package Eco-system](#package-eco-system)
+    - [Running Environment](#running-environment)
+
+# Part I. Definition and Goals
 
 ## Definition
-Syntax mode refers to the ability for users to see what code generates the output they see. This includes filters, computed columns and analyses.
+Syntax Mode refers to the ability for users to see what code generates the output they see. This includes filters, computed columns and analyses.
 
 ## Use Case
-1. Syntax mode will provide a smoother transition from SPSS that makes heavy use of syntax.
-2. With syntax mode it becomes easier to develop new R analyses as they can be run from RStudio with little effort.
+1. Syntax Mode will provide a smoother transition from SPSS that makes heavy use of syntax.
+2. With Syntax Mode it becomes easier to develop new R analyses as they can be run from RStudio with little effort.
 3. Syntax can easily be shared between colleagues and attached to appendices.
-4. JASP can be a tool to expose students to R.
+4. JASP can be used as a tool to expose students to R.
 
-## Primary Goals of Syntax Mode Implementation
+## Primary Goals of the Syntax Mode Implementation
 1. The syntax will cover filters, computed columns and analyses.
 2. The syntax will be valid R and can be run outside of JASP in RStudio and in the R editor of JASP.
 3. The syntax will be consistent with the syntax you would provide to regular R packages (e.g., `stats::lm()`).
-4. The user will need to perform minimal additional steps after copy-pasting to generate output similar of that seen in JASP (i.e., only read data).
+4. The user will need to perform minimal additional steps after copy-pasting to generate output similar to that seen in JASP (i.e., only read data).
 5. The output of the syntax in RStudio will generate a structure that R users are familiar with.
-6. The syntax is set up in a way that will, **in the future**, allow users to execute syntax inside of JASP and have JASP perform the specified filters/computed columns/analyses.
-7. The user can easily browse through documentation of the syntax within RStudio.
+6. The syntax is set up in a way that will, **in the future**, allow users to execute syntax inside of JASP and have JASP perform the specified filters/computed columns/analyses and show them in the interface (so not in the R editor). This is more a nice to have though.
+7. The user can easily access documentation of the syntax (through `?`) without needing to read the helpfiles in JASP.
 
 ## Intended Limitations of Syntax Mode
 1. The syntax does not need to be executable in JASP at present (other than in the R editor), but we'll likely want that at a later stage (see also bullet 6 of the Primary Goals).
-2. The syntax can be separate statements that are not linked together. What this means is that it is acceptable not to include package installing, data reading and temporary variables (although we could add this as an additional feature). By doing this we will ensure it will be easier to later execute our generated syntax inside of JASP (once we reach that point). An example of the distincting between linked and separate statements:
+2. The syntax can be separate statements that are not linked together. What this means is that it is acceptable not to include package installing, data reading and temporary variables (although we could add this as an additional feature). By doing this we will ensure it will be easier to later execute our generated syntax inside of JASP (once we reach that point). An example of the distinction between linked and separate statements:
    
 Separate statements:
 ```
@@ -39,10 +67,10 @@ read.csv(...) %>% filter(...)
 
 
 
-# Part II: Examples of the Intended Syntax
+# Part II. Examples of the Intended Syntax
 
 ## Filters
-Based on `dplyr::filter()`, with only one proposed adjustment to dplyr's logic: allow no data to be passed in, in which case we search for a dataset in the `parent.frame`. This ensures we don't have to enter `dplyr::filter(data = dataset, ...)` everywhere and make it easier to execute inside the R editor of JASP (which has a fixed name). The following filters are already natively supported by `dplyr::filter()` and return filtered `data.frame`s:
+This will be based on `dplyr::filter()`, with only one proposed adjustment to dplyr's logic: allow no data to be passed in, in which case we search for a dataset in the `parent.frame`. This ensures we don't have to enter `dplyr::filter(data = dataset, ...)` everywhere and make it easier to execute inside the R editor of JASP (which has a fixed name for the dataset). The following filters are already natively supported by `dplyr::filter()` and return filtered `data.frame`'s:
 
 From JASP's "drag 'n drop interface" filter:
 
@@ -61,7 +89,7 @@ filter({
 ```
 
 ## Computed Columns
-Based on `dplyr::mutate()`, with the same proposed change of removing `data` (and a rename of the function to `compute`). The following ways of column adding are already natively supported by `dplyr::mutate()` and return `data.frame`s with the additional columns:
+This will be based on `dplyr::mutate()`, with the same proposed change of removing `data`, and possibly a rename of the function to `compute`. The following ways of column adding are already natively supported by `dplyr::mutate()` and return `data.frame`'s with the additional columns:
 
 From JASP's "drag 'n drop interface" compute column:
 
@@ -85,7 +113,7 @@ compute(logSumScore = {
 ```
 
 ## Analyses
-These functions are intended to be alike to statistical functions such as `stats::lm()`, especially in regards to the use of formula's. JASP's analysis functions should only deviate from other R functions when it comes to output. Whereas JASP will creates lots of output from a single function call, regular R functions generally only do "one thing". However, our approach isn't necessarily worse than the norm as it requires the users to only know about one single function. To accomplish a clean interface for the analyses, we will need wrappers around the existing analyses. This is an example call to a wrapper around our ANOVA analysis:
+These functions are intended to be alike to statistical functions such as `stats::lm()`, especially in regards to the use of [formulas](http://conjugateprior.org/2013/01/formulae-in-r-anova/). JASP's analysis functions should only deviate from other R functions when it comes to output. Whereas JASP will creates lots of output from a single function call, regular R functions generally only do "one thing". However, our approach isn't necessarily worse than the norm, as it requires the users to only know about one single function. The benefit to us is that Syntax Mode does not require changes to existing analyses. To create a clean interface for users to interact with the analyses, we will need wrappers around them. The next example shows how the options in JASP would map to a wrapper call for our ANOVA analysis:
 
 ![image info](ANOVA-analysis-call.png)
 
@@ -94,8 +122,8 @@ anova(formula = contNormal ~ facGender + facExperim + facGender * facExperim,
       descriptives = TRUE)
 ```
 
-#### Formula's
-Formula's complicate the implementation, but simplify the syntax. Furthermore, they are the standard way in which models are specified in R. The next example shows the benefit of formula's by repeating the previous ANOVA call, but without using a formula:
+#### Formulas
+Formulas complicate the implementation, but simplify the syntax. Furthermore, they are the standard way in which models are specified in R. The next example shows the benefit of formulas by repeating the previous ANOVA call, but without using a formula:
 ```
 anova(dep = "contNormal",
       fixed = c("facGender", "facExperim"),
@@ -105,14 +133,14 @@ anova(dep = "contNormal",
 
 
 
-# Part III: Implementation Details
+# Part III. Implementation Details
 
-There are two aspects of the Syntax Mode implementation. Firstly, there is creation of the basic building blocks behind the Syntax Mode. Secondly, there is the interaction of the user with those building blocks. The following flow charts show a basic visual of these two aspects. of the implementation that allows module developers to interact with it and secondly there is the implementation that allows users to interact with it.
+There are two aspects to the Syntax Mode implementation. Firstly, there is creation of the basic building blocks behind the Syntax Mode. Secondly, there is the interaction of the user with those building blocks. The following flow charts show a basic visual idea of the data flow for these two aspects.
 Creating the building blocks:
 
 ![image info](flow-chart-developer-syntax-mode.png)
 
-User interaction with those building blocks:
+User interaction with those building blocks through JASP and RStudio:
 
 ![image info](flow-chart-user-syntax-mode.png)
 
@@ -120,7 +148,7 @@ User interaction with those building blocks:
 ## Creating the Syntax Mode Building Blocks
 
 ### Obtaining the Necessary Information
-The R Obtains Class and wrapper can be automatically generated by an R script. However, this R script requires a summary of analysis.qml and Description.qml. Considering writing a good QML parser has kindly been performed for us by Qt it makes sense we use the JASP executable for this (through a shell command), or include a binary with jaspTools that can do this. Ideally this function will be callable from R so users can do most of their developing in RStudio. The output should be JSON that summarizes each component, with the following minimum information:
+The R Options Class and Wrapper can be automatically generated by an R script, however, this R script will require a summary of analysis.qml and Description.qml. Considering writing a good QML parser is not trivial it makes sense we use either the JASP executable for this (through a shell command), or include a binary with jaspTools that can do this. Ideally, this function will be callable from R so users can do most of their developing in RStudio. The output should be JSON that summarizes each component, with the following minimum information:
 
 - Name
 - Type (e.g., checkbox, radiobutton)
@@ -203,7 +231,7 @@ Generated summary:
 }
 ```
 
-Header of jasp-analysis-wrappers.R:
+Header of the Wrapper we could create from this:
 ```
 #' Allows the user to analyze the difference between multiple group means.
 #'
@@ -217,22 +245,23 @@ anova <- function(fixedFactors = "", descriptives = FALSE, ci = 95) {
 
 </details>
 
-#### Difficulties
-- Problem with default values based on js logic; the qml needs to be run to figure out the true default configuration.
+#### Additional Thoughts
+- There could be a problem with default values based on js logic; the qml needs to be run to figure out the true default configuration.
 
 ### The Wrapper
-The wrapper is what users interact with when running the analysis syntax in RStudio or the JASP R editor. It's what handles the formula, translates the syntax back into an R options list and makes sure validation occurs by calling the Options Class. Furthermore, the wrapper should deal with the setup and breakdown of the jaspResults object.
+The Wrapper is what users interact with when running the analysis syntax in RStudio or the JASP R editor. It's what handles the formula, translates the syntax back into an R options list and makes sure validation occurs by calling the Options Class. Furthermore, the Wrapper should deal with the setup and breakdown of the jaspResults object.
 
 <details>
 
-<summary>Example of a naive wrapper that shows how the formula's can be used, but lacks validation</summary>
+<summary>Example of a naive Wrapper that shows how the formulas can be used, but lacks validation</summary>
 
-Example of calling the wrapper shown below, note that your working directory should be set to your `jaspAnova` clone:
+Syntax to call the wrapper (note that your working directory should be set to your `jaspAnova` clone):
 ```
 if (require(jaspTools))
   bancova(Sepal.Length ~ Species + Sepal.Width, data = iris)
 ```
 
+Very basic Wrapper code:
 ```
 bancova <- function(formula           = NULL,
                     data              = NULL,
@@ -505,17 +534,17 @@ convertOptionNames <- function(options) {
 
 </details>
 
-#### The Wrapper: thoughts
-- Wrapper should be able to call the column encoding functionality.
-- How should the name of the wrapper differ from the analysis fn name? Perhaps: anova and .anova (wrapper, analysis, respectively).
-- Problem with analyses that have a whole host of options appearing and disappearing e.g., network analysis that must all be present in the wrapper and it might become difficult to call.
-- All options should be renamed to something shorter that still makes sense. Everything needs to be added to the upgrader.
-- If we add the help from our helpfiles (accessible through e.g., `?jasp::banova`), then it won't always be clear to the user what the actual R input should be. For example, from ttestpairedsamples.md we obtain the following info about `variables`: `In this box the variables are selected for which the difference is computed. Multiple differences can be analysed at the same time by specifying different rows with two variables for which the difference is computed. In other words, each row represents other difference scores."` which does not relay that it should be `list(c("var1", "var2"))`.
+#### Additional Thoughts
+- The Wrapper should be able to call the column encoding functionality.
+- How should the name of the Wrapper differ from the analysis fn name? Perhaps: anova and .anova (Wrapper, analysis, respectively).
+- Some analyses have a whole host of options appearing and disappearing (e.g., network analysis) that must all be present in the Wrapper; it might become a little difficult for a user to create a function call from scratch (although creating these calls manually from scratch is obviously not the main intention of Syntax Mode).
+- All options should be renamed to something shorter that still makes sense. Consequently, everything will need to be added to the upgrader.
+- If we add the help from our helpfiles (accessible through e.g., `?jasp::banova`), then it won't always be clear to the user what the actual R input should be. For example, from ttestpairedsamples.md we obtain the following info about `variables`: `In this box the variables are selected for which the difference is computed. Multiple differences can be analysed at the same time by specifying different rows with two variables for which the difference is computed. In other words, each row represents other difference scores."` which does not relay that it should be `list(c("var1", "var2"))`. However, we know the basic structure of our options, so this could be generated.
 
-#### The Formula
-The formula is basically a summary of multiple `AssignedVariableList`s together with the model terms component. Formula's consist of left hand side (lhs) and right hand side (rhs) operators. The lhs are dependent variables that are `+` separated. The rhs are independent variables that are also `+` separated; rhs terms may also contain interactions of multiple independent variables, specified by `*`.
+### The Formula
+The formula is basically a summary of multiple `AssignedVariableList`s together with the model terms component. Formulas consist of left hand side (lhs) and right hand side (rhs) operators. The lhs are dependent variables that are `+` separated. The rhs are independent variables that are also `+` separated; rhs terms may also contain interactions of multiple independent variables, specified by a `*`.
 
-To specify formula's we need to introduce two properties to the qml: `positionInFormula` (`"lhs"` or `"rhs"`), `mustSpecify` (boolean, see below in the thoughts section) and `modelSpecification` (boolean). `positionInFormula` can be used to specify where the terms need to go in a formula. `modelSpecification` needs to be set to `true` if an `AssignedVariablesList` exists that dictates which rhs terms are included in the model (this is the case in the ANOVA's and Regression's); the terms included in this `AssignedVariablesList` are a superset of the individual fields with the  `"rhs"` specification and so can be used directly.
+To specify formulas we need to introduce two properties to the qml: `positionInFormula` (`"lhs"` or `"rhs"`), `mustSpecify` (boolean, see below in the thoughts section) and `modelSpecification` (boolean). `positionInFormula` can be used to specify where the terms need to go in a formula. `modelSpecification` needs to be set to `true` if an `AssignedVariablesList` exists that dictates which rhs terms are included in the model (this is the case in the ANOVA's and Regression's); the terms included in this `AssignedVariablesList` are a superset of the individual fields with the  `"rhs"` specification and so can be used directly.
 
 <details>
 
@@ -540,35 +569,143 @@ VariablesForm
     AssignedVariablesList  { name: "modelTerms"; title: qsTr("Model Terms"); listViewType: JASP.Interaction; modelSpecification: true }
 }
 
+```
 Note that despite the existence of `modelSpecification: true`, it is still necessary to specify the `rhs` terms separately in the qml, because otherwise it won't be possible to know which terms are to be excluded from the function call in favour of the formula.
+
+</details>
+
+#### Additional Thoughts
+- It needs to remain possible to uniquely identify which independent variable in the formula comes from which box (e.g., fixed factor, random factor, covariate). The distinction between fixed/random factors on the one hand and covariates on the other can be made based on type (factor vs numeric), but the distinction between fixed and random factors cannot be made -- they are both factors. In this case the random factor needs a property `mustSpecify` that signifies that it must always be specified in addition to the formula (e.g., `formula = ~ contBinom + facGender, random = contBinom)`).
+- The inclusion of additional properties in the model terms (e.g., "include in null"). So far This has always been a single checkbox and can be solved by having two formulas, one that specifies the full model and one that specifies which are null terms (e.g., `formula = ~ contBinom + facGender, nullModelFormula = ~ contBinom)`). However, this will not work as easily with anything other than a checkbox and in those cases it might be necessary to disallow formulas.
+- Can analyses have multiple formulas? Inclined to say no, to make this easier and consistent with other R packages.
+- Where to add the additional parameters `formula` and `nullModel` in the options list? Model terms or keep them as additional arguments in the analysis too?
+- Formulas do not quote their variables, it would be nice if all variables could be entered unquoted. Example code for this:
+
+<details>
+
+<summary>Code for unquoted variables</summary>
+
+```
+# possible types: single, vector, list of vectors (pairs), interaction, with row components
+main <- function(single, vector, pairs, interaction, rowComponents, data) {
+  single        <- toStringTerms(substitute(single),        data)
+  vector        <- toStringTerms(substitute(vector),        data)
+  pairs         <- toStringTerms(substitute(pairs),         data, type = "paired")
+  interaction   <- toStringTerms(substitute(interaction),   data)
+  rowComponents <- toStringTerms(substitute(rowComponents), data, type = "rowComponents")
+  
+  print(single); print(vector); print(pairs); print(interaction); print(rowComponents)
+}
+
+toStringTerms <- function(unevalExpr, data, type = "regular") {
+  if (type == "rowComponents" || type == "paired") {
+    lst <- as.list(unevalExpr)
+
+    if (lst[[1]] != "list")
+      stop("Argument requires a list of elements")
+    
+    lst[[1]] <- NULL
+    
+    if (type == "rowComponents")
+      return(stringifyRowComponents(lst))
+    
+    if (type == "paired")
+      return(stringifyPairs(lst))
+  } else {
+    return(stringifyTerms(unevalExpr, data))
+  }
+}
+
+stringifyRowComponents <- function(lst) {
+  if (!"terms" %in% names(lst))
+    stop("Argument needs to be a named list with the entry `terms`")
+  
+  lst[["terms"]] <- stringifyTerms(lst[["terms"]], data)
+  
+  return(lst)
+}
+
+stringifyPairs <- function(lst) {
+  lapply(lst, stringifyTerms, data = data)
+}
+
+stringifyTerms <- function(unevalExpr, data) {
+  terms <- asCharacterVector(unevalExpr)
+  
+  for (term in terms) {
+    interactions <- hasInteractions(terms)
+    if (hasInteractions(term)) {
+      
+      components <- splitInteractions(terms)
+      if (!all(termIsValidColumn(components, data)))
+        stop("The interaction term (", term, ") contains unknown data columns")
+      
+    } else if (!termIsValidColumn(term, data)) {
+        stop("The term (", term, ") could not be found in the data")
+    }
+  }
+  
+  return(terms)
+}
+
+asCharacterVector <- function(unevalExpr) {
+  result <- unevalExpr
+
+  charRepresent <- as.character(unevalExpr)
+  if (inherits(unevalExpr, "name")) # e.g., contNormal
+    result <- charRepresent
+  else if (inherits(unevalExpr, "call") && charRepresent[[1]] == "c" && length(charRepresent) > 1) # e.g., c(contNormal, contGamma)
+    result <- charRepresent[2:length(charRepresent)]
+  else if (inherits(unevalExpr, "call")) # e.g., contNormal:contGamma
+    result <- deparse(unevalExpr)
+
+  return(result)
+}
+
+termIsValidColumn <- function(term, data) {
+  term %in% names(data)
+}
+
+hasInteractions <- function(term) {
+  grepl(":", term)
+}
+
+splitInteractions <- function(term) {
+  unlist(stringr::str_split(term, ":"))
+}
+
+
+###### -------- example
+data <- data.frame(col1 = 1:10, col2 = 1:10, col3 = 1:10)
+main(single        = col1, 
+     vector        = c("col1", col2), 
+     pairs         = list(c(col1, col2), c(col1, col3)), 
+     interaction   = c(col1, col2, col1:col2),
+     rowComponents = list(terms = c(col1, "col1:col2", col2),
+                          null  = c(T, T, F)),
+     data          = data)
 ```
 
 </details>
 
-##### The Formula: thoughts
-- It needs to remain possible to uniquely identify which independent variable in the formula comes from which box (e.g., fixed factor, random factor, covariate). The distinction between fixed/random factors on the one hand and covariates on the other can be made based on type (factor vs numeric), but the distinction between fixed and random factors cannot be made -- they are both factors. In this case the random factor needs a property `mustSpecify` that signifies that it must always be specified in addition to the formula (e.g., `formula = ~ contBinom + facGender, random = contBinom)`).
-- The inclusion of additional properties in the model terms (e.g., "include in null"). So far This has always been a single checkbox and can be solved by having two formula's, one that specifies the full model and one that specifies which are null terms (e.g., `formula = ~ contBinom + facGender, nullModelFormula = ~ contBinom)`). However, this will not work as easily with anything other than a checkbox and in those cases it might be necessary to disallow formula's.
-- Can analyses have multiple formula's?
-- Where to add the additional parameters `formula` and `nullModel` in the options list? Model terms or keep them as additional arguments in the analysis too?
-
 ### The Options Class
-The Options Class plays two parts. Firstly, it returns the R syntax for a given set of JSON options in JASP and secondly it validates and returns R options for supplied syntax to the wrapper. The idea is to create an R6 `jaspOptions` class in `jaspBase` which defines logic for each component type (checkbox, radiobutton). The generated Options Class can then inherit from `jaspOptions` and apply the parent logic to all the qml components for a specific analysis. `jaspOptions` should implement:
+The Options Class plays two parts. Firstly, it returns the R syntax for a given set of JSON options in JASP and secondly it validates and returns R options for supplied syntax to the Wrapper. The extremely basic idea is to create an R6 `jaspOptions` class in `jaspBase` which defines logic for each component type (checkbox, radiobutton). The generated Options Class can then inherit from `jaspOptions` and apply the parent logic to all the qml components for a specific analysis. `jaspOptions` should implement:
 - `jaspOptions$new(options)`
 - `jaspOptions$validate()`
 - `jaspOptions$toSyntax()`
 
-#### The Options Class: thoughts
-- Should validation based on javascript be incorporated (e.g., the `min` of a component depends on a different component's value)?
-- Should the enabled status of components be taken into account?
-- In addition to basic validation (e.g., `ciLevel < 1`), every component should be checked for what may be its "missing value" (e.g., `list()`) and its "filled value" (e.g., `list(list(component = "contBinom"))`) to ensure the correctness of the supplied value.
+#### Additional Thoughts
+- Should validation based on javascript be incorporated (e.g., when the `min` of an `IntegerField` depends on a different component's value)?
+- Should the enabled status of components be taken into account? Inclined to say no, the programmer should be defensive in his programming (e.g., if `ci` is not checked the analysis shouldn't do anything with `ciLevel`).
+- In addition to performing basic validation (e.g., `ciLevel < 1`), every component should also be checked for allowed "missing values" (e.g., `list()`) and their allowed "filled values" (e.g., `list(list(component = "contBinom"))`), this will ensure the correctness of the supplied options.
 
-## User interaction with the Syntax Mode within JASP
+## User Interaction with the Syntax Mode within JASP
 
 ### Displaying Syntax in JASP
-There needs to be an area in JASP where the user can find the syntax that was generated by their option selection. Considering syntax is a description of the input of an analysis a natural place for this would be to be in the QML input panel. We can add an additional button on top of an analysis panel that lets users toggle between clickable options and the syntax. The syntax will be fetched by querying the Options Class.
+There needs to be an area in JASP where the user can find the syntax that was generated by their option selection. Considering syntax is a description of the input of an analysis a natural place for this would be to be in the QML input panel. We can add an additional button on top of each analysis panel that lets users toggle between clickable options and the syntax. The syntax will be fetched by querying the Options Class.
 
 ### Running Syntax in the JASP R Editor
-At the bare minimum the syntax should give results in our R editor. The data is already loaded, the C++ objects are present and all packages are loaded. So the focus should be on making sure that the results make sense in an R console. This means:
+At the bare minimum the syntax should give results in our R editor, RStudio is our ultimate goal but this is first thing to aim for. It's easier than RStudio, because the data is already loaded, the C++ objects are present and all packages are loaded. The focus here should be on making sure that the results make sense in an R console. This means:
 - Creating a summary method with a very good looking ASCII print; either we should work on our current implementation or use something like the [stargazer](https://cran.r-project.org/web/packages/stargazer/vignettes/stargazer.pdf) package:
 ```
 > stargazer::stargazer(head(iris), type = "text")
@@ -583,28 +720,28 @@ Petal.Width  6 0.233  0.082   0.200  0.200    0.200   0.400
 -----------------------------------------------------------
 ```
 
-- Making sure the output is more 'sane'; the excessive nesting should be reduced to top level elements.
-- Index names must be short and to the point, instead of the long concatenations.
-- Tables need to be a common format like a regular data.frames or the like that allows users to easily use them for further analysis.
-- Plots should go to the plot device and the plot object returned in the results list (and the R editor should be able to handle plots without crashing).
+- Making sure the output structure is more 'sane'; the excessive nesting should be reduced to top level elements. Index names must be short and to the point, instead of the long concatenations.
+- Tables need to be a common format like a regular `data.frame` or the like that allows users to use the table data for further analysis.
+- Plots should go to the plot device and the plot object returned in the results list (the R editor should be able to handle plots without crashing).
+
+#### Additional Thoughts
+- How should a table with collapsed columns be represented in R? It can't be a normal `data.frame` because the columns mix types.
+- We could automatically give tips in the R editor if we see a filter or compute column command that is not stored in the data by the user.
 - `info(jasp::banova(...args...))` could be used to return additional info in an enriched ASCII representation of the analysis. Each output element will have info added next to it; these info elements can be extracted from the `$addInfo`'s used in the analysis.
 
-### Running Syntax in the JASP R Editor: thoughts
-- How should a table with collapsed columns be represented in R?
-
-## User interaction with the Syntax Mode within RStudio
+## User Interaction with the Syntax Mode within RStudio
 
 ### Package Eco-system
 To make it easy to perform an analysis in R it needs to be simple to install our R packages and run them. They should not require anything from JASP.
-A number of packages need to be created with distinct sets of functionality. Doing so, will ensure people can check the namespace and only find a coherent set of functions. Furthermore, this will ensure we can easily update separate components, without users having to reinstall everything when something unrelated to what they do (i.e., develop, or run analyses) changes.
+A number of packages need to be created with distinct sets of functionality. Doing so, will ensure people can check the namespace and only find a coherent set of functions. Furthermore, this will ensure we can easily update separate components, without users having to reinstall everything when something changes unrelated to what they do (i.e., develop, or run analyses).
 - `jasp`: A package that bundles the common R analyses in one namespace. Installs all the required R analysis packages that are created by the JASP team. Exports only the analysis functions and the functions for the filter and column computation. The benefit of this approach is that users only need to know about a single package, only need to install packages once and it becomes clear from looking at the `jasp` namespace which analyses are available. Additional modules can be installed as separate R packages.
-- `jaspBase`: A package that contains all the building blocks for creating a JASP R analysis. This is basically a combination of jaspResults and the convenience functions such as those found in common.R and commonerrorcheck.R.
+- `jaspBase`: A package that contains all the building blocks for creating a JASP R analysis. This should be a combination of `jaspResults` with the current `jaspBase`. It's important `jaspResults` is incorporated here, because it needs to be installable without having jasp-desktop.
 - `jaspGraphs`: A package that handles all our plotting needs.
-- `jaspTools`: A package that aids an R analysis developer with the creation of their JASP R analysis. It exports functions related to the creation of an JASP-R package skeleton, the handling of translations, creation of a wrapper, etc.
+- `jaspTools`: A package that aids an R analysis developer with the creation of their JASP R analysis. It exports functions related to the creation of an JASP-R package skeleton, the handling of translations, creation of a Wrapper, etc.
 
-### Running environment
-At present jaspTools is required to run an analysis, this is mainly because JASP inserts certain objects into the global R environment, which naturally do not exist when run outside of JASP. To ensure analyses can be run from R:
+### Running Environment
+At present jaspTools is required to run an analysis, this is mainly because JASP inserts certain objects into the global R environment, which naturally do not exist when run outside of JASP. To ensure analyses can be run in RStudio:
 - The `jaspBase` package needs to provide drop-in replacements for the C++ functions defined in `jasprcpp.cpp` (e.g., `encodeColNamesStrict`).
-- The `jaspBase` package needs to make column encoding available to ensure that when an analysis works in JASP it will also work in R.
+- The `jaspBase` package needs to make column encoding available to ensure that when an analysis works in JASP it will also work in RStudio.
 - The `jaspBase` package needs to make the `jaspResults` object assignable to a variable, in this way users can run multiple analyses.
 - Each analysis must be able to correctly deal with receiving data directly through the `dataset` argument.
