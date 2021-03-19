@@ -17,8 +17,8 @@
     - [Formula](#Formula)
       - [Additional Thoughts](#Additional-Thoughts-2)
   - [User Interaction within JASP](#User-Interaction-within-JASP)
-    - [Displaying Syntax in JASP](#Displaying-Syntax-in-JASP)
-    - [Running Syntax in the JASP R Editor](#Running-Syntax-in-the-JASP-R-Editor)
+    - [Displaying Syntax](#Displaying-Syntax)
+    - [Running Syntax in the R Editor](#Running-Syntax-in-the-R-Editor)
       - [Additional Thoughts](#Additional-Thoughts-3)
   - [User Interaction within RStudio](#User-Interaction-within-RStudio)
     - [Package Eco-system](#Package-Eco-system)
@@ -75,13 +75,13 @@ This will be based on `dplyr::filter()`, with only one proposed adjustment to dp
 
 From JASP's "drag 'n drop interface" filter:
 
-![image info](Single-line-filter.png)
+![Single-line-filter](https://github.com/jasp-stats/INTERNAL-jasp/blob/master/images/Single-line-filter.png)
 ```
 filter(contNormal < 0)
 ```
 From JASP's "R interface" filter:
 
-![image info](Multi-line-filter.png)
+![Multi-line-filter](https://github.com/jasp-stats/INTERNAL-jasp/blob/master/images/Multi-line-filter.png)
 ```
 filter({
     temp1 <- facExperim
@@ -95,18 +95,18 @@ This will be based on `dplyr::mutate()`, with the same proposed change of removi
 
 From JASP's "drag 'n drop interface" compute column:
 
-![image info](Single-line-compute-column-naming.png)
+![Single-line-compute-column-naming](https://github.com/jasp-stats/INTERNAL-jasp/blob/master/images/Single-line-compute-column-naming.png)
 
-![image info](Single-line-compute-column.png)
+![Single-line-compute-column](https://github.com/jasp-stats/INTERNAL-jasp/blob/master/images/Single-line-compute-column.png)
 ```
 compute(sumScore = contNormal + contGamma)
 ```
 
 From JASP's "R interface" compute column:
 
-![image info](Multi-line-compute-column-naming.png)
+![Multi-line-compute-column-naming](https://github.com/jasp-stats/INTERNAL-jasp/blob/master/images/Multi-line-compute-column-naming.png)
 
-![image info](Multi-line-compute-column.png)
+![Multi-line-compute-column](https://github.com/jasp-stats/INTERNAL-jasp/blob/master/images/Multi-line-compute-column.png)
 ```
 compute(logSumScore = {
   sumScore <- contNormal + contGamma
@@ -118,7 +118,7 @@ compute(logSumScore = {
 ## Analyses
 These functions are intended to be alike to statistical functions such as `stats::lm()`, especially in regards to the use of [formulas](http://conjugateprior.org/2013/01/formulae-in-r-anova/). JASP's analysis functions should only deviate from other R functions when it comes to output. Whereas JASP will creates lots of output from a single function call, regular R functions generally only do "one thing". However, our approach isn't necessarily worse than the norm, as it requires the users to only know about one single function. The benefit to us is that Syntax Mode does not require changes to existing analyses. To create a clean interface for users to interact with the analyses, we will need wrappers around them. The next example shows how the options in JASP would map to a wrapper call for our ANOVA analysis:
 
-![image info](ANOVA-analysis-call.png)
+![ANOVA-analysis-call](https://github.com/jasp-stats/INTERNAL-jasp/blob/master/images/ANOVA-analysis-call.png)
 
 ```
 anova(formula = contNormal ~ facGender + facExperim + facGender * facExperim,
@@ -137,15 +137,15 @@ anova(dep = "contNormal",
 
 
 # Part III. Implementing the Syntax Mode Framework
-The Syntax Mode framework will require new R packages to be created, demand multiple UI changes as well as changes to the backend of JASP. This section does not go into minute detail about the implementation of this framework. Rather, it serves to point out all the major areas that need to be worked on and the caveats that should be considered during implementation. The following flowcharts intend to highlight these areas by showing how both users and developers will interact with them; further detail is provided further down.
+The Syntax Mode framework will require new R packages to be created, demand multiple UI changes as well as changes to the backend of JASP. This section does not go into minute detail about the implementation of this framework. Rather, it serves to point out all the major areas that need to be worked on and the caveats that should be considered during implementation. The following flowcharts intend to highlight these areas by showing how both users and developers will interact with them; more detail is provided further down.
 
-![image info](flow-chart-user-syntax-mode.png)
+![User interaction with syntax mode](https://github.com/jasp-stats/INTERNAL-jasp/blob/master/images/flow-chart-user-syntax-mode.png)
 
-Flowchart 1. This flowchart shows the user interaction with the Syntax Mode in JASP and RStudio when they are running analyses. Note that the flow of information on the left hand side (from JASP to the R Analysis) does not change from how it is currently implemented. Nor will any analysis expect a different input from what it already receives.
+*Flowchart 1.* This flowchart shows the user interaction with the Syntax Mode in JASP and RStudio when they are running analyses. Note that the flow of information on the left hand side (from JASP to the R Analysis) does not change from how it is currently implemented. Nor will any analysis expect a different input from what it already receives.
 
-![image info](flow-chart-developer-syntax-mode.png)
+![Developer interaction with syntax mode](https://github.com/jasp-stats/INTERNAL-jasp/blob/master/images/flow-chart-developer-syntax-mode.png)
 
-Flowchart 2. This flowchart shows the developer interaction in RStudio when they are creating a new module and wish for it to be installed so they can test it. The Analysis Wrapper will be a dedicated file placed in the `/module/R/` folder.
+*Flowchart 2.* This flowchart shows the developer interaction in RStudio when they are creating a new module and wish for it to be installed so they can test it. The Analysis Wrapper will be a dedicated file placed in the `/module/R/` folder.
 
 ## New Components
 
@@ -607,12 +607,12 @@ main(single        = col1,
 
 ## User Interaction within JASP
 
-### Displaying Syntax in JASP
+### Displaying Syntax
 There needs to be an area in JASP where the user can find the syntax that was generated by their option selection. Considering syntax is a description of the input of an analysis a natural place for this would be to be in the QML input panel. We can add an additional button on top of each analysis panel that lets users toggle between clickable options and the syntax. The syntax will be fetched by querying the QML layer.
 
 
-### Running Syntax in the JASP R Editor
-At the bare minimum the syntax should give results in our R editor, RStudio is our ultimate goal but this is first thing to aim for. It's easier than RStudio, because the data is already loaded, the C++ objects are present and all packages are loaded. The focus here should be on making sure that the results make sense in an R console. This means:
+### Running Syntax in the R Editor
+At the bare minimum the syntax should give results in our JASP R editor, RStudio is our ultimate goal but this is first thing to aim for. It's easier than RStudio, because the data is already loaded, the C++ objects are present and all packages are loaded. The focus here should be on making sure that the results make sense in an R console. This means:
 - Creating a summary method with a very good looking ASCII print; either we should work on our current implementation or use something like the [stargazer](https://cran.r-project.org/web/packages/stargazer/vignettes/stargazer.pdf) package:
 ```
 > stargazer::stargazer(head(iris), type = "text")
